@@ -5,8 +5,11 @@ namespace app\controllers;
 use app\components\github\GithubComponent;
 use app\models\GithubUser;
 use app\models\search\GithubRepoSearch;
+use app\models\search\GithubUserSearch;
 use Yii;
+use yii\helpers\Json;
 use yii\web\Controller;
+use yii\web\NotFoundHttpException;
 
 /**
  * Class SiteController
@@ -33,10 +36,51 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        $request = Yii::$app->request;
-
         $searchModel = new GithubRepoSearch();
         $dataProvider = $searchModel->search();
+
+        return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider
+        ]);
+    }
+
+    /**
+     * Displays list of github users
+     *
+     * @return string
+     * @throws \Throwable
+     */
+    public function actionUserList()
+    {
+        $request = Yii::$app->request;
+
+        if (!$request->isAjax) {
+            throw new NotFoundHttpException();
+        }
+
+        $searchModel = new GithubUserSearch();
+        $dataProvider = $searchModel->search($request->post());
+
+        return $this->renderAjax('//site/content/_user_list_modal', [
+            'dataProvider' => $dataProvider,
+            'model' => new GithubUser()
+        ]);
+    }
+
+    /**
+     * Creates user (ajax only)
+     *
+     * @return string
+     * @throws \Throwable
+     */
+    public function actionCreateUser()
+    {
+        $request = Yii::$app->request;
+
+        if (!$request->isAjax) {
+            throw new NotFoundHttpException();
+        }
 
         $model = new GithubUser();
 
@@ -45,19 +89,61 @@ class SiteController extends Controller
                 if (GithubComponent::getUser($model->username) && $model->save()) {
                     GithubComponent::fetchUserRepoList($model->username);
 
+                    $result = [
+                        'success' => true,
+                        'message' => "Пользователь {$model->username} был успешно добавлен"
+                    ];
+
                     Yii::$app->session->addFlash('success', "Пользователь {$model->username} был успешно добавлен");
                 } else {
-                    Yii::$app->session->addFlash('error', 'Указанный пользователь не существует в github или уже был добавлен');
+                    $result = [
+                        'success' => false,
+                        'message' => 'Пользователь не найден'
+                    ];
                 }
             } catch (\Throwable $ex) {
-                Yii::$app->session->addFlash('error', "Что - то пошло не так, попробуйте позже {$ex->getMessage()}");
+                $result = [
+                    'success' => false,
+                    'message' => "Что - то пошло не так, попробуйте позже {$ex->getMessage()}",
+                ];
             }
         }
 
-        return $this->render('index', [
-            'searchModel' => $searchModel,
-            'dataProvider' => $dataProvider,
-            'model' => new GithubUser()
-        ]);
+        return Json::encode($result);
+    }
+
+    /**
+     * Deletes user (ajax only)
+     *
+     * @return string
+     * @throws \Throwable
+     */
+    public function actionDeleteUser()
+    {
+        $request = Yii::$app->request;
+
+        if (!$request->isAjax) {
+            throw new NotFoundHttpException();
+        }
+
+        $userID = $request->post('userID');
+
+        $model = (!is_null($userID) ? GithubUser::getUser($userID) : null);
+
+        if ($model && $model->delete()) {
+            $result = [
+                'success' => true,
+                'message' => "Пользователь {$model->username} был удален"
+            ];
+
+            Yii::$app->session->addFlash('success', "Пользователь {$model->username} был удален");
+        } else {
+            $result = [
+                'success' => false,
+                'message' => 'Пользователь не найден'
+            ];
+        }
+
+        return Json::encode($result);
     }
 }

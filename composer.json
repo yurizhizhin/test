@@ -23,7 +23,8 @@
         "http-interop/http-factory-guzzle": "^1.0",
         "nyholm/psr7": "^1.3",
         "php-http/httplug": "^2.1",
-        "symfony/http-client": "^5.0"
+        "symfony/http-client": "^5.0",
+        "rmrevin/yii2-fontawesome": "~3.5"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.0",
