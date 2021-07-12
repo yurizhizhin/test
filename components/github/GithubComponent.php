@@ -24,6 +24,8 @@ class GithubComponent implements GithubComponentInterface
      */
     public static function fetchUserRepoList(string $username, int $userID = null): void
     {
+        $db = Yii::$app->db;
+
         $client = self::authorize();
 
         $repoFetchResult = $client->api(self::DEFAULT_API_NAME)
@@ -38,14 +40,24 @@ class GithubComponent implements GithubComponentInterface
         $repoList = new GithubRepoList($repoFetchResult);
 
         foreach ($repoList->repositoryList as $repo) {
-            $model = new GithubRepo();
+            $db->beginTransaction();
 
-            $model->user_id = $userID;
-            $model->repo_name = $repo->repo_name;
-            $model->created_at = strtotime($repo->created_at);
-            $model->updated_at = strtotime($repo->updated_at);
+            try {
+                $model = new GithubRepo();
 
-            $model->save();
+                $model->user_id = $userID;
+                $model->repo_name = $repo->repo_name;
+                $model->created_at = strtotime($repo->created_at);
+                $model->updated_at = strtotime($repo->updated_at);
+
+                $model->save();
+
+                $db->transaction->commit();
+            } catch (\Throwable $ex) {
+                $db->transaction->rollBack();
+
+                throw $ex;
+            }
         }
     }
 
@@ -58,7 +70,17 @@ class GithubComponent implements GithubComponentInterface
     {
         $db = Yii::$app->db;
 
-        $db->createCommand("TRUNCATE TABLE " . GithubRepo::tableName())->execute();
+        $db->beginTransaction();
+
+        try {
+            $db->createCommand("TRUNCATE TABLE " . GithubRepo::tableName())->execute();
+
+            $db->transaction->commit();
+        } catch (\Throwable $ex) {
+            $db->transaction->rollBack();
+
+            throw $ex;
+        }
 
         $userList = GithubUser::find()->all();
 

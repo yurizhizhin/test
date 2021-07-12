@@ -42,4 +42,13 @@ class GithubUser extends \yii\db\ActiveRecord
             'username' => 'Имя пользователя',
         ];
     }
+
+    /**
+     * @param int $userID
+     * @return GithubUser|null
+     */
+    public static function getUser(int $userID)
+    {
+        return static::findOne(['id' => $userID]);
+    }
 }

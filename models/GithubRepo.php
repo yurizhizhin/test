@@ -34,7 +34,6 @@ class GithubRepo extends \yii\db\ActiveRecord
             [['user_id', 'repo_name', 'created_at', 'updated_at'], 'required'],
             [['user_id', 'created_at', 'updated_at'], 'integer'],
             [['repo_name'], 'string', 'max' => 255],
-            [['repo_name'], 'unique'],
             [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => GithubUser::class, 'targetAttribute' => ['user_id' => 'id']],
         ];
     }

@@ -5,10 +5,10 @@
 
 /* @var $model \app\models\GithubUser */
 
-use yii\widgets\ActiveForm;
 use yii\grid\GridView;
 use yii\helpers\Html;
 use yii\helpers\Url;
+use yii\helpers\HtmlPurifier;
 
 $this->title = 'Github repo list';
 ?>
@@ -16,8 +16,8 @@ $this->title = 'Github repo list';
 <h1>Список репозиториев</h1>
 
 <p>
-    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#new_user_model">
-        Добавить нового пользователя
+    <button type="button" id="user_list_modal_btn" class="btn btn-success" data-toggle="modal" data-target="#user_list_modal">
+        Список пользователей
     </button>
 </p>
 
@@ -31,14 +31,14 @@ $this->title = 'Github repo list';
                     'label' => 'Пользователь',
                     'format' => 'raw',
                     'value' => function ($model) {
-                        return Html::a($model->user->username, Url::to("https://github.com/{$model->user->username}"), ['target' => '_blank']);
+                        return Html::a(HtmlPurifier::process($model->user->username), Url::to("https://github.com/" . HtmlPurifier::process($model->user->username) . ""), ['target' => '_blank']);
                     }
                 ],
                 [
                     'label' => 'Название',
                     'format' => 'raw',
                     'value' => function ($model) {
-                        return Html::a($model->repo_name, Url::to("https://github.com/{$model->repo_name}"), ['target' => '_blank']);
+                        return Html::a(HtmlPurifier::process(HtmlPurifier::process($model->repo_name)), Url::to("https://github.com/". HtmlPurifier::process($model->repo_name)), ['target' => '_blank']);
                     }
                 ],
                 [
@@ -52,27 +52,28 @@ $this->title = 'Github repo list';
     </div>
 </div>
 
-<div class="modal fade" tabindex="-1" role="dialog" id="new_user_model">
+<div class="modal fade" tabindex="-1" role="dialog" id="user_list_modal">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Новый пользователь</h5>
+                <h5 class="modal-title">Список пользователей</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <?php $form = ActiveForm::begin(); ?>
-
-                <?= $form->field($model, 'username')->textInput(['maxlength' => true]) ?>
-
-                <div class="form-group">
-                    <?= Html::submitButton('Сохранить', ['class' => 'btn btn-success']) ?>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
-                </div>
-
-                <?php ActiveForm::end(); ?>
+            <div id="alert"></div>
+            <div class="modal-body" id="user_list_content">
+                <!-- Ajax content -->
             </div>
         </div>
     </div>
 </div>
+
+<?php
+
+$this->registerJsFile(
+    Url::to(['/js/main.js']),
+    [
+        'depends' => \yii\web\JqueryAsset::class
+    ]
+);
